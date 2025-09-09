@@ -1,0 +1,11 @@
+Metadata-Version: 2.1
+Briefcase-Version: 0.3.24
+Name: hydrosense
+Formal-Name: Hydrosense
+App-ID: com.thomas.hydrosense
+Version: 0.0.1
+Home-page: https://thomas.com/hydrosense
+Download-URL: https://thomas.com/hydrosense
+Author: HydroGroup
+Author-email: hydrogroup123@gmail.com
+Summary: Hydrosense é uma interface gráfica para a exibição dos dados obtidos pelo seu dispositivo Hydrosense.
