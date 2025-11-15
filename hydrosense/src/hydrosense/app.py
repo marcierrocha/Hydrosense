@@ -18,7 +18,7 @@ class HydroSense(toga.App):
         webview = toga.WebView(style= Pack(flex=1))
 
         main_box.add(webview)
-        webview.url = "http://192.168.0.90:8080"
+        webview.url = "http://192.168.1.237"
 
 
 
