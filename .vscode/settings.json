@@ -1,0 +1,5 @@
+{
+    "python.analysis.extraPaths": [
+        "./hydrosense/build/hydrosense/android/gradle/app/build/python/pip/debug/common"
+    ]
+}

@@ -178,6 +178,7 @@ requires = [
     "toga-android~=0.5.0",
 ]
 
+
 base_theme = "Theme.MaterialComponents.Light.DarkActionBar"
 
 build_gradle_dependencies = [
@@ -187,6 +188,9 @@ build_gradle_dependencies = [
     # Needed for MapView
     # "org.osmdroid:osmdroid-android:6.1.20",
 ]
+
+
+
 
 # Web deployments
 [tool.briefcase.app.hydrosense.web]
