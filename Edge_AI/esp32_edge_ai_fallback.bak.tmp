@@ -1,0 +1,389 @@
+/*
+ * Hydrosense - Sistema de Análise de Qualidade da Água com Edge AI
+ * VERSÃO FALLBACK - FUNCIONA SEM BIBLIOTECAS TENSORFLOW
+ * 
+ * Esta versão usa uma simulação inteligente do modelo TensorFlow
+ * sem necessidade de bibliotecas externas. Perfeita para testes!
+ */
+
+#include <WiFi.h>
+#include <WebServer.h>
+#include <DHT.h>
+
+// ========== CONFIGURAÇÕES DO AP ==========
+const char* ssid = "AquaAnalyzer_AP";
+const char* password = "12345678";
+
+IPAddress localIP(192, 168, 1, 237);
+IPAddress gateway(192, 168, 1, 237);
+IPAddress subnet(255, 255, 255, 0);
+
+WebServer server(80);
+
+// ========== CONFIGURAÇÃO DO DHT11 ==========
+#define DHTPIN 4
+#define DHTTYPE DHT11
+
+DHT dht(DHTPIN, DHTTYPE);
+
+// ========== VARIÁVEIS DE DADOS ==========
+float temperatura = 0.0;
+float umidade = 0.0;
+float pH = 6.8;
+float turbidez = 1.2;
+String ultimaAtualizacao = "";
+
+// Variáveis da análise IA
+float iaScore = 0.0;
+String iaClassificacao = "Calculando...";
+String iaConfianca = "Alta";
+
+// ========== HISTÓRICO PARA GRÁFICOS ==========
+const int historicoSize = 5;
+float tempHistorico[historicoSize] = {0};
+float pHHistorico[historicoSize] = {0};
+float turbidezHistorico[historicoSize] = {0};
+String tempoHistorico[historicoSize] = {""};
+int historicoIndex = 0;
+unsigned long ultimaLeitura = 0;
+const unsigned long intervaloLeitura = 5000;
+
+// ========== FUNÇÃO DE ANÁLISE IA (FALLBACK) ==========
+float analisarQualidadeAgua(float temp, float umid) {
+    // Normalizar inputs (mesma normalização usada no treino)
+    float temp_norm = temp / 50.0;
+    float umid_norm = umid / 100.0;
+    
+    // Simulação do modelo baseada no treino real
+    // Valores mais altos de temperatura e menores de umidade = score maior (pior qualidade)
+    float score = (temp_norm * 0.7) + ((1.0 - umid_norm) * 0.3);
+    score = constrain(score, 0.0, 1.0);
+    
+    return score;
+}
+
+String interpretarResultado(float score) {
+    if (score < 0.3) return "Excelente";
+    else if (score < 0.5) return "Boa";
+    else if (score < 0.7) return "Moderada";
+    else return "Baixa";
+}
+
+String calcularConfianca(float score) {
+    float distanciaLimite = min(
+        min(abs(score - 0.3), abs(score - 0.5)),
+        abs(score - 0.7)
+    );
+    
+    if (distanciaLimite > 0.15) return "Alta";
+    else if (distanciaLimite > 0.05) return "Média";
+    else return "Baixa";
+}
+
+// ========== LEITURA DE SENSORES ==========
+void lerSensorDHT() {
+    float novaTemp = dht.readTemperature();
+    float novaUmidade = dht.readHumidity();
+    
+    if (!isnan(novaTemp) && !isnan(novaUmidade)) {
+        temperatura = novaTemp;
+        umidade = novaUmidade;
+        
+        // Simular variação nos outros sensores
+        pH = 6.5 + (random(0, 20) / 10.0);
+        turbidez = 0.5 + (random(0, 15) / 10.0);
+        
+        // Análise IA
+        iaScore = analisarQualidadeAgua(temperatura, umidade);
+        iaClassificacao = interpretarResultado(iaScore);
+        iaConfianca = calcularConfianca(iaScore);
+        
+        // Atualizar histórico
+        tempHistorico[historicoIndex] = temperatura;
+        pHHistorico[historicoIndex] = pH;
+        turbidezHistorico[historicoIndex] = turbidez;
+        
+        char buffer[20];
+        snprintf(buffer, sizeof(buffer), "%02d:%02d:%02d", 
+                 (millis() / 3600000) % 24, 
+                 (millis() / 60000) % 60, 
+                 (millis() / 1000) % 60);
+        tempoHistorico[historicoIndex] = String(buffer);
+        
+        historicoIndex = (historicoIndex + 1) % historicoSize;
+        
+        snprintf(buffer, sizeof(buffer), "Hoje às %02d:%02d", 
+                 (millis() / 3600000) % 24, 
+                 (millis() / 60000) % 60);
+        ultimaAtualizacao = String(buffer);
+        
+        Serial.println("\n📊 Dados atualizados:");
+        Serial.print("   Temperatura: "); Serial.print(temperatura); Serial.println("°C");
+        Serial.print("   Umidade: "); Serial.print(umidade); Serial.println("%");
+        Serial.print("   pH: "); Serial.println(pH);
+        Serial.print("   Turbidez: "); Serial.print(turbidez); Serial.println("NTU");
+        Serial.print("   🧠 IA Score: "); Serial.print(iaScore, 4);
+        Serial.print(" → "); Serial.print(iaClassificacao);
+        Serial.print(" (Confiança: "); Serial.print(iaConfianca); Serial.println(")");
+    } else {
+        Serial.println("❌ Falha na leitura do DHT11!");
+    }
+}
+
+// ========== ENDPOINT API ==========
+void handleSensorData() {
+    String json = "{";
+    json += "\"temperatura\":" + String(temperatura, 1) + ",";
+    json += "\"umidade\":" + String(umidade, 1) + ",";
+    json += "\"pH\":" + String(pH, 1) + ",";
+    json += "\"turbidez\":" + String(turbidez, 1) + ",";
+    json += "\"ultimaAtualizacao\":\"" + ultimaAtualizacao + "\",";
+    json += "\"qualidadeIA\":{";
+    json += "\"score\":" + String(iaScore, 4) + ",";
+    json += "\"classificacao\":\"" + iaClassificacao + "\",";
+    json += "\"confianca\":\"" + iaConfianca + "\"";
+    json += "}";
+    json += "}";
+    
+    server.send(200, "application/json", json);
+}
+
+void handleRoot() {
+    server.send_P(200, "text/html", index_html);
+}
+
+// ========== SETUP ==========
+void setup() {
+    Serial.begin(115200);
+    Serial.println("\n\n🌊 Hydrosense - Sistema Edge AI (Fallback)");
+    Serial.println("==========================================");
+    
+    dht.begin();
+    Serial.println("✅ DHT11 inicializado");
+    Serial.println("✅ IA Fallback ativada (funciona sem bibliotecas TensorFlow)");
+    
+    // Inicializar histórico
+    for (int i = 0; i < historicoSize; i++) {
+        tempHistorico[i] = 23.0 + (i * 0.1);
+        pHHistorico[i] = 6.8;
+        turbidezHistorico[i] = 1.2;
+        tempoHistorico[i] = String(i * 30) + "s";
+    }
+    
+    // Configurar Wi-Fi AP
+    WiFi.softAPConfig(localIP, gateway, subnet);
+    WiFi.softAP(ssid, password);
+    
+    Serial.print("✅ AP criado: ");
+    Serial.println(ssid);
+    Serial.print("   IP: ");
+    Serial.println(WiFi.softAPIP());
+    
+    server.on("/", handleRoot);
+    server.on("/api/sensor-data", handleSensorData);
+    
+    server.begin();
+    Serial.println("✅ Servidor HTTP iniciado");
+    Serial.println("\n💡 Acesse: http://192.168.1.237");
+    Serial.println("==========================================\n");
+    
+    lerSensorDHT();
+    ultimaLeitura = millis();
+}
+
+// ========== LOOP ==========
+void loop() {
+    server.handleClient();
+    
+    if (millis() - ultimaLeitura >= intervaloLeitura) {
+        lerSensorDHT();
+        ultimaLeitura = millis();
+    }
+    
+    delay(10);
+}
+
+// ========== PÁGINA HTML ==========
+const char index_html[] PROGMEM = R"rawliteral(
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hydrosense - Edge AI</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+        }
+        h1 {
+            color: #1a202c;
+            margin: 0 0 30px 0;
+            font-size: 2.5em;
+        }
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            transition: transform 0.3s ease;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+        }
+        .card h3 {
+            margin: 0 0 10px 0;
+            font-size: 0.9em;
+            opacity: 0.9;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .metric {
+            font-size: 3em;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        .card p {
+            margin: 5px 0 0 0;
+            opacity: 0.9;
+            font-size: 0.9em;
+        }
+        .ai-card {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+        .temp-card {
+            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+        }
+        .umid-card {
+            background: linear-gradient(135deg, #30cfd0 0%, #330867 100%);
+        }
+        .ph-card {
+            background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+            color: #1a202c;
+        }
+        .status {
+            display: inline-block;
+            padding: 5px 15px;
+            background: rgba(255,255,255,0.3);
+            border-radius: 20px;
+            font-size: 0.9em;
+            margin-top: 10px;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            color: #718096;
+            font-size: 0.9em;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .loading {
+            animation: pulse 2s ease-in-out infinite;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🌊 Hydrosense - Análise Edge AI</h1>
+        
+        <div class="metrics-grid">
+            <div class="card ai-card">
+                <h3>🧠 Análise Inteligente</h3>
+                <div class="metric" id="iaClassificacao">Carregando...</div>
+                <p>Score: <span id="iaScore">--</span></p>
+                <div class="status">Confiança: <span id="iaConfianca">--</span></div>
+            </div>
+            
+            <div class="card temp-card">
+                <h3>🌡️ Temperatura</h3>
+                <div class="metric" id="tempValue">--°C</div>
+                <p>Temperatura da água</p>
+                <div class="status" id="tempStatus">--</div>
+            </div>
+            
+            <div class="card umid-card">
+                <h3>💧 Umidade</h3>
+                <div class="metric" id="umidadeValue">--%</div>
+                <p>Umidade relativa do ar</p>
+                <div class="status" id="umidadeStatus">--</div>
+            </div>
+            
+            <div class="card ph-card">
+                <h3>⚗️ pH</h3>
+                <div class="metric" id="phValue">--</div>
+                <p>Potencial hidrogeniônico</p>
+                <div class="status" id="phStatus">--</div>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>Última atualização: <span id="ultimaAtualizacao">--:--</span></p>
+            <p>Hydrosense © 2026 | Desenvolvido por Amorim, Marcier e Onezimo</p>
+        </div>
+    </div>
+    
+    <script>
+        async function fetchData() {
+            try {
+                const response = await fetch('/api/sensor-data');
+                const data = await response.json();
+                
+                if (data.qualidadeIA) {
+                    const elem = document.getElementById('iaClassificacao');
+                    elem.innerText = data.qualidadeIA.classificacao;
+                    elem.classList.remove('loading');
+                    
+                    document.getElementById('iaScore').innerText = 
+                        (data.qualidadeIA.score * 100).toFixed(1) + '%';
+                    document.getElementById('iaConfianca').innerText = 
+                        data.qualidadeIA.confianca;
+                }
+                
+                document.getElementById('tempValue').innerText = 
+                    data.temperatura.toFixed(1) + '°C';
+                document.getElementById('tempStatus').innerText = 
+                    (data.temperatura >= 18 && data.temperatura <= 28) ? 'Normal' : 'Alerta';
+                
+                document.getElementById('umidadeValue').innerText = 
+                    data.umidade.toFixed(1) + '%';
+                document.getElementById('umidadeStatus').innerText = 
+                    (data.umidade >= 30 && data.umidade <= 80) ? 'Normal' : 'Alerta';
+                
+                document.getElementById('phValue').innerText = data.pH.toFixed(1);
+                document.getElementById('phStatus').innerText = 
+                    (data.pH >= 6.5 && data.pH <= 7.5) ? 'Normal' : 'Alerta';
+                
+                document.getElementById('ultimaAtualizacao').innerText = 
+                    data.ultimaAtualizacao;
+                    
+            } catch (error) {
+                console.error('Erro ao carregar dados:', error);
+            }
+        }
+        
+        fetchData();
+        setInterval(fetchData, 2000);
+    </script>
+</body>
+</html>
+)rawliteral";
