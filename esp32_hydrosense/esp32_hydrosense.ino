@@ -1,13 +1,10 @@
 /*
- * Hydrosense - Sistema de Análise de Qualidade da Água com Edge AI
+ * Hydrosense - Sistema de Análise de Qualidade da Água
  *
- * Este código integra TensorFlow Lite Micro no ESP32 para análise inteligente
- * de qualidade da água usando dados de sensores em tempo real.
- *
- * Hardware:
- * - ESP32
+ * Este código monitora a qualidade da água usando dados de sensores em tempo real.
+ * Inclui:
+ * - Leitura Múltipla de Sensores (pH, Temperatura, Turbidez)
  * - DallasTemperature (para DS18B20)
- * - TensorFlow Lite Micro para ESP32
  * - Sensor de pH
  */
 
@@ -195,7 +192,7 @@ void handleNotFound() {
 // ========== SETUP ==========
 void setup() {
   Serial.begin(115200);
-  Serial.println("\n\n Hydrosense - Sistema Edge AI");
+  Serial.println("\n\n Hydrosense - Sistema de Monitoramento");
   Serial.println("================================");
 
   sensors.begin();
