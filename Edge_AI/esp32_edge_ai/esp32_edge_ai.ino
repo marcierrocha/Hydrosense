@@ -8,34 +8,30 @@
  * - ESP32
  * - DallasTemperature (para DS18B20)
  * - TensorFlow Lite Micro para ESP32
- *
- * Instalação do TensorFlow Lite:
- * 1. Arduino IDE: Instalar "Arduino_TensorFlowLite" via Library Manager
- * 2. PlatformIO: adicionar 'tflite-micro' ao platformio.ini
+ * - Sensor de pH
  */
 
 #include "webpage.h"
+#include <Arduino.h>
+#include <DNSServer.h>
 #include <DallasTemperature.h>
 #include <OneWire.h>
 #include <WebServer.h>
 #include <WiFi.h>
 
-#include "modelo_tflite.h" // Array com o modelo convertido
-#include <TensorFlowLite_ESP32.h>
-#include <tensorflow/lite/micro/all_ops_resolver.h>
-#include <tensorflow/lite/micro/micro_error_reporter.h>
-#include <tensorflow/lite/micro/micro_interpreter.h>
-#include <tensorflow/lite/schema/schema_generated.h>
+// TFLite removido
 
 // ========== CONFIGURAÇÕES DO AP ==========
-const char *ssid = "AquaAnalyzer_AP";
-const char *password = "12345678";
+const char *ssid = "Hydrosense_AP";
 
 IPAddress localIP(192, 168, 1, 237);
 IPAddress gateway(192, 168, 1, 237);
 IPAddress subnet(255, 255, 255, 0);
 
 WebServer server(80);
+
+const byte DNS_PORT = 53;
+DNSServer dnsServer;
 
 // ========== CONFIGURAÇÃO DOS SENSORES ==========
 
@@ -44,184 +40,97 @@ WebServer server(80);
 OneWire oneWire(ONE_WIRE_BUS);
 DallasTemperature sensors(&oneWire);
 
-// Sensor de Turbidez
-#define TURBIDITY_PIN 34 // GPIO Analógico para o sensor de turbidez
+// Sensor de Turbidez (Módulo Laser + LDR)
+#define LDR_PIN 35
+#define LASER_PIN 32 // Pino recomendado para output (Ex: 32)
+#define PH_PIN 34
+
+// Calibração do sensor DE PH
+float m = -5.976;
+float b = 14.853;
+
+float readPH() {
+  long soma = 0;
+  for (int i = 0; i < 10; i++) {
+    soma += analogRead(PH_PIN);
+    delay(10);
+  }
+  float voltage = (soma / 10.0) * (3.3 / 4095.0);
+
+  // Se a voltagem for quase zero (ex: < 0.1V), o sensor provavelmente está
+  // desconectado
+  if (voltage < 0.1) {
+    return 0.0;
+  }
+
+  float ph = m * voltage + b;
+  return ph;
+}
 
 // ========== VARIÁVEIS DE DADOS ==========
 float temperatura = 0.0;
-// float umidade = 0.0;
-float pH = 6.8;
+
+float pH = 0;
 float turbidez = 1.2;
 String ultimaAtualizacao = "";
 
-// Variáveis da análise IA
-float iaScore = 0.0;
-String iaClassificacao = "Calculando...";
-String iaConfianca = "Alta";
+
 
 extern const char index_html[] PROGMEM;
 
-// ========== HISTÓRICO PARA GRÁFICOS ==========
-const int historicoSize = 5;
-float tempHistorico[historicoSize] = {0};
-float pHHistorico[historicoSize] = {0};
-float turbidezHistorico[historicoSize] = {0};
-String tempoHistorico[historicoSize] = {""};
-int historicoIndex = 0;
+
 unsigned long ultimaLeitura = 0;
-const unsigned long intervaloLeitura = 5000;
+const unsigned long intervaloLeitura = 1000;
 
-// ========== TENSORFLOW LITE - VARIÁVEIS GLOBAIS ==========
-// Descomente após instalar a biblioteca
-namespace {
-tflite::ErrorReporter *error_reporter = nullptr;
-const tflite::Model *model = nullptr;
-tflite::MicroInterpreter *interpreter = nullptr;
-TfLiteTensor *input = nullptr;
-TfLiteTensor *output = nullptr;
 
-//   // Buffer de memória para TensorFlow Lite (2KB deve ser suficiente)
-constexpr int kTensorArenaSize = 2 * 1024;
-uint8_t tensor_arena[kTensorArenaSize];
-} // namespace
-
-// ========== FUNÇÃO DE ANÁLISE IA ==========
-/**
- * Analisa a qualidade da água usando o modelo TensorFlow Lite
- *
- * @param temp Temperatura em °C
- * @param umid Umidade em %
- * @return Score entre 0 e 1 (0 = Excelente, 1 = Baixa)
- */
-float analisarQualidadeAgua(float temp) {
-  // ========== VERSÃO COM TENSORFLOW ==========
-  // Normalizar inputs
-  float temp_norm = temp / 50.0;
-  // float umid_norm = umid / 100.0;
-
-  // Preencher tensor de entrada
-  input->data.f[0] = temp_norm;
-  // input->data.f[1] = umid_norm; // REMOVED
-
-  // Executar inferência
-  TfLiteStatus invoke_status = interpreter->Invoke();
-  if (invoke_status != kTfLiteOk) {
-    Serial.println("❌ Erro na inferência!");
-    return 0.5; // Valor médio em caso de erro
-  }
-
-  // Obter resultado
-  float score = output->data.f[0];
-
-  Serial.print("🧠 Inferência IA: Temp=");
-  Serial.print(temp);
-  // Serial.print("°C, Umid=");
-  // Serial.print(umid);
-  Serial.print("% → Score=");
-  Serial.println(score, 4);
-
-  return score;
-}
-
-/**
- * Interpreta o score da IA e retorna uma classificação
- */
-String interpretarResultado(float score) {
-  if (score < 0.3)
-    return "Excelente";
-  else if (score < 0.5)
-    return "Boa";
-  else if (score < 0.7)
-    return "Moderada";
-  else
-    return "Baixa";
-}
-
-/**
- * Calcula a confiança da predição baseada no score
- */
-String calcularConfianca(float score) {
-  // Se o score está muito próximo dos limites (0.3, 0.5, 0.7)
-  // a confiança é menor
-  float distanciaLimite =
-      min(min(abs(score - 0.3), abs(score - 0.5)), abs(score - 0.7));
-
-  if (distanciaLimite > 0.15)
-    return "Alta";
-  else if (distanciaLimite > 0.05)
-    return "Média";
-  else
-    return "Baixa";
-}
-
-// ========== SETUP TENSORFLOW LITE ==========
-void setupTensorFlowLite() {
-  // Descomente após instalar a biblioteca
-
-  // Configurar error reporter
-  static tflite::MicroErrorReporter micro_error_reporter;
-  error_reporter = &micro_error_reporter;
-
-  // Carregar modelo
-  model = tflite::GetModel(modelo_tflite);
-  if (model->version() != TFLITE_SCHEMA_VERSION) {
-    Serial.println("❌ Versão do modelo incompatível!");
-    return;
-  }
-
-  Serial.println("✅ Modelo TFLite carregado");
-
-  // Configurar operações
-  static tflite::AllOpsResolver resolver;
-
-  // Criar interpreter
-  static tflite::MicroInterpreter static_interpreter(
-      model, resolver, tensor_arena, kTensorArenaSize, error_reporter);
-  interpreter = &static_interpreter;
-
-  // Alocar memória para tensors
-  TfLiteStatus allocate_status = interpreter->AllocateTensors();
-  if (allocate_status != kTfLiteOk) {
-    Serial.println("❌ Falha ao alocar tensors!");
-    return;
-  }
-
-  // Obter ponteiros para input e output
-  input = interpreter->input(0);
-  output = interpreter->output(0);
-
-  Serial.println("✅ TensorFlow Lite inicializado com sucesso!");
-  Serial.print("   Memória usada: ");
-  Serial.print(interpreter->arena_used_bytes());
-  Serial.print(" bytes de ");
-  Serial.println(kTensorArenaSize);
-}
 
 // ========== LEITURA DE SENSORES ==========
 float lerTurbidez() {
-  int sensorValue = analogRead(TURBIDITY_PIN);
-  float voltage = sensorValue * (3.3 / 4095.0); // ESP32 ADC (0-3.3V)
+  int raw = analogRead(LDR_PIN);
 
-  // Conversão simples de voltagem para NTU (ajustar conforme curva do sensor)
-  // Exemplo genérico: Maior voltagem (água limpa) -> Menor NTU
-  // Menor voltagem (água suja) -> Maior NTU
-  // Esta fórmula precisa ser calibrada com o sensor específico!
-  // Supondo: 2.5V+ = 0 NTU, <2.5V aumenta NTU
+  // O ESP32 possui ADC de 12-bits (0-4095) e opera a 3.3V máximo de conversão
+  // nativo!
+  float voltage = raw * (3.3 / 4095.0);
 
-  float ntu = 0;
-  if (voltage < 2.5) {
-    ntu = 3000.0 * (1.0 - (voltage / 2.5)); // Exemplo grosseiro
+  String qualidade;
+  float ntu_estimado = 0;
+
+  // A lógica do módulo LDR é invertida: muita luz (água limpa) = baixa tensão.
+  // Verificámos que com água limpa, a tensão ronda os 0.17V.
+  if (voltage >= 2.2) {
+    qualidade = "MUITO TURVA"; // Bloqueio total / escuro (Tensão alta)
+  } else if (voltage >= 0.8) {
+    qualidade = "TURVA"; // Água suja
+  } else {
+    qualidade = "LIMPA"; // Água limpa (Baixa tensão, perto de 0V)
   }
 
-  // Como estamos usando simulação/adaptação, vamos retornar um valor baseado na
-  // leitura Mas limitar para evitar negativos
-  if (ntu < 0)
-    ntu = 0;
+  // Calibração ajustada para zerar o NTU na água limpa (0.17V medidos).
+  float voltagem_ajustada = voltage - 0.17;
+  if (voltagem_ajustada < 0)
+    voltagem_ajustada = 0;
 
-  // debug
-  // Serial.print("Turbidity Volt: "); Serial.println(voltage);
+  // Assumimos que no escuro total chegue a ~3.0V
+  // Mapeamento: 0.17V = 0 NTU | 3.0V = 100 NTU
+  // 3.0V - 0.17V = 2.83V de diferença
+  ntu_estimado = (voltagem_ajustada / 2.83) * 100.0;
 
-  return ntu;
+  // Garantir que o valor fique entre 0 e 100 NTU
+  if (ntu_estimado < 0.0)
+    ntu_estimado = 0.0;
+  if (ntu_estimado > 100.0)
+    ntu_estimado = 100.0;
+
+  Serial.print("   LDR RAW: ");
+  Serial.print(raw);
+  Serial.print(" | Tensão: ");
+  Serial.print(voltage, 3);
+  Serial.print("V | Água: ");
+  Serial.println(qualidade);
+
+  // Retornamos um número estimado para não quebrar os gráficos e lógicas
+  // existentes
+  return ntu_estimado;
 }
 
 void lerSensores() {
@@ -231,8 +140,8 @@ void lerSensores() {
 
   // Verificar erro de leitura
   if (tempC == DEVICE_DISCONNECTED_C) {
-    Serial.println("❌ Erro: DS18B20 desconectado!");
-    // Manter valor anterior ou usar backup do DHT se necessário
+    Serial.println("Erro: DS18B20 desconectado! Retornando 0.");
+    temperatura = 0.0;
   } else {
     temperatura = tempC;
   }
@@ -240,72 +149,35 @@ void lerSensores() {
   // 3. Turbidez
   turbidez = lerTurbidez();
 
-  // 4. pH (Ainda simulado pois não foi fornecido sensor de pH no prompt)
-  pH = 6.5 + (random(0, 20) / 10.0);
+  // 4. pH (Leitura real do sensor)
+  pH = readPH();
 
-  // ========== ANÁLISE IA ==========
-  // Usamos a temp da água E umidade ambiente?
-  // O modelo original parecia usar temp e umidade. Vamos manter a lógica.
-  // iaScore = analisarQualidadeAgua(temperatura, umidade);
-  iaScore = analisarQualidadeAgua(temperatura);
-  iaClassificacao = interpretarResultado(iaScore);
-  iaConfianca = calcularConfianca(iaScore);
-
-  // Atualizar histórico
-  tempHistorico[historicoIndex] = temperatura;
-  pHHistorico[historicoIndex] = pH;
-  turbidezHistorico[historicoIndex] = turbidez;
-
-  // Timestamp
   char buffer[20];
-  snprintf(buffer, sizeof(buffer), "%02d:%02d:%02d", (millis() / 3600000) % 24,
-           (millis() / 60000) % 60, (millis() / 1000) % 60);
-  tempoHistorico[historicoIndex] = String(buffer);
 
-  historicoIndex = (historicoIndex + 1) % historicoSize;
-
-  // Atualizar timestamp
+  /* Atualizar timestamp
   snprintf(buffer, sizeof(buffer), "Hoje às %02d:%02d",
            (millis() / 3600000) % 24, (millis() / 60000) % 60);
   ultimaAtualizacao = String(buffer);
-
-  Serial.println("\n📊 Dados atualizados:");
+*/
+  Serial.println("\n Dados atualizados:");
   Serial.print("   Temp Água (DS18B20): ");
   Serial.print(temperatura);
   Serial.println("°C");
-  // Serial.print("   Umidade Ar (DHT11): ");
-  // Serial.print(umidade);
-  // Serial.println("%");
   Serial.print("   pH: ");
   Serial.println(pH);
   Serial.print("   Turbidez: ");
   Serial.print(turbidez);
   Serial.println(" NTU");
-  Serial.print("   🧠 IA Score: ");
-  Serial.print(iaScore, 4);
-  Serial.print(" → ");
-  Serial.print(iaClassificacao);
-  Serial.print(" (Confiança: ");
-  Serial.print(iaConfianca);
-  Serial.println(")");
+
 }
 
 // ========== ENDPOINT API - DADOS DOS SENSORES ==========
 void handleSensorData() {
   String json = "{";
   json += "\"temperatura\":" + String(temperatura, 1) + ",";
-  // json += "\"umidade\":" + String(umidade, 1) + ",";
   json += "\"pH\":" + String(pH, 1) + ",";
   json += "\"turbidez\":" + String(turbidez, 1) + ",";
-  json += "\"ultimaAtualizacao\":\"" + ultimaAtualizacao + "\",";
-
-  // ========== NOVO: Dados da análise IA ==========
-  json += "\"qualidadeIA\":{";
-  json += "\"score\":" + String(iaScore, 4) + ",";
-  json += "\"classificacao\":\"" + iaClassificacao + "\",";
-  json += "\"confianca\":\"" + iaConfianca + "\"";
-  json += "}";
-
+  json += "\"ultimaAtualizacao\":\"" + ultimaAtualizacao + "\"";
   json += "}";
 
   server.send(200, "application/json", json);
@@ -313,41 +185,50 @@ void handleSensorData() {
 
 void handleRoot() { server.send_P(200, "text/html", index_html); }
 
+// Redireciona todos os acessos desconhecidos para a página principal (Captive
+// Portal)
+void handleNotFound() {
+  server.sendHeader("Location", "http://192.168.1.237/", true);
+  server.send(302, "text/plain", "Redirecionando para a Dashboard...");
+}
+
 // ========== SETUP ==========
 void setup() {
   Serial.begin(115200);
-  Serial.println("\n\n🌊 Hydrosense - Sistema Edge AI");
+  Serial.println("\n\n Hydrosense - Sistema Edge AI");
   Serial.println("================================");
 
-  Serial.println("✅ Sensor DS18B20 inicializado");
+  sensors.begin();
+  Serial.println("Sensor DS18B20 inicializado");
 
-  // Inicializar TensorFlow Lite
-  setupTensorFlowLite();
+  // Inicializar o Módulo Laser
+  pinMode(LASER_PIN, OUTPUT);
+  digitalWrite(LASER_PIN, HIGH);
+  Serial.println("Módulo Laser Inicializado");
 
-  // Inicializar histórico
-  for (int i = 0; i < historicoSize; i++) {
-    tempHistorico[i] = 23.0 + (i * 0.1);
-    pHHistorico[i] = 6.8;
-    turbidezHistorico[i] = 1.2;
-    tempoHistorico[i] = String(i * 30) + "s";
-  }
 
-  // Configurar Wi-Fi AP
+
+  // Configurar Wi-Fi AP (Aberta / Sem Senha)
   WiFi.softAPConfig(localIP, gateway, subnet);
-  WiFi.softAP(ssid, password);
+  WiFi.softAP(ssid);
 
-  Serial.print("✅ AP criado: ");
+  Serial.print("AP criado: ");
   Serial.println(ssid);
   Serial.print("   IP: ");
   Serial.println(WiFi.softAPIP());
 
+  // Iniciar DNS Server (Captive Portal) - Roteia tudo para o IP local
+  dnsServer.start(DNS_PORT, "*", localIP);
+  Serial.println("Portal Cativo (DNS) iniciado");
+
   // Configurar rotas
   server.on("/", handleRoot);
   server.on("/api/sensor-data", handleSensorData);
+  server.onNotFound(handleNotFound); // Interceta e redireciona
 
   server.begin();
-  Serial.println("✅ Servidor HTTP iniciado");
-  Serial.println("\n💡 Acesse: http://192.168.1.237");
+  Serial.println("Servidor HTTP iniciado");
+  Serial.println("\n Acesse: http://192.168.1.237");
   Serial.println("================================\n");
 
   // Primeira leitura
@@ -357,6 +238,8 @@ void setup() {
 
 // ========== LOOP ==========
 void loop() {
+  // Lidar com requisições DNS (Captive Portal) e Web
+  dnsServer.processNextRequest();
   server.handleClient();
 
   // Ler sensores periodicamente
@@ -365,7 +248,7 @@ void loop() {
     ultimaLeitura = millis();
   }
 
-  delay(10);
+  delay(1);
 }
 
 // HTML movido para webpage.h para melhor organização

@@ -26,6 +26,30 @@ WebServer server(80);
 
 DHT dht(DHTPIN, DHTTYPE);
 
+// ========== CONFIGURAÇÃO DO SENSOR DE PH ==========
+#define PH_PIN 34
+
+// Calibração do teu sensor
+float m = -5.976;
+float b = 14.853;
+
+float readPH() {
+    long soma = 0;
+    for (int i = 0; i < 10; i++) {
+        soma += analogRead(PH_PIN);
+        delay(10);
+    }
+    float voltage = (soma / 10.0) * (3.3 / 4095.0);
+    
+    // Se a voltagem for quase zero (ex: < 0.1V), o sensor provavelmente está desconectado
+    if (voltage < 0.1) {
+        return 0.0;
+    }
+    
+    float ph = m * voltage + b;
+    return ph;
+}
+
 // ========== VARIÁVEIS DE DADOS ==========
 float temperatura = 0.0;
 float umidade = 0.0;
@@ -81,33 +105,58 @@ String calcularConfianca(float score) {
 }
 
 // ========== LEITURA DE SENSORES ==========
+// ========== LEITURA DE SENSORES ==========
+float lerTurbidezFallback() {
+    int sensorValue = analogRead(35); // Assumindo pino 35 como no principal
+    float voltage = sensorValue * (3.3 / 4095.0);
+    
+    // Se a voltagem for quase 0V ou 3.3V, sensor provavelmente desconectado
+    if (voltage < 0.1 || voltage > 3.2) {
+        return 0.0;
+    }
+    
+    float ntu = 0;
+    if (voltage < 2.5) {
+        ntu = 3000.0 * (1.0 - (voltage / 2.5));
+    }
+    
+    if (ntu < 0) return 0.0;
+    return ntu;
+}
+
 void lerSensorDHT() {
     float novaTemp = dht.readTemperature();
     float novaUmidade = dht.readHumidity();
     
-    if (!isnan(novaTemp) && !isnan(novaUmidade)) {
+    // Fallback para 0 se o sensor DHT estiver desconectado
+    if (isnan(novaTemp) || isnan(novaUmidade)) {
+        Serial.println("❌ Falha na leitura do DHT11! Retornando 0.");
+        temperatura = 0.0;
+        umidade = 0.0;
+    } else {
         temperatura = novaTemp;
         umidade = novaUmidade;
-        
-        // Simular variação nos outros sensores
-        pH = 6.5 + (random(0, 20) / 10.0);
-        turbidez = 0.5 + (random(0, 15) / 10.0);
-        
-        // Análise IA
-        iaScore = analisarQualidadeAgua(temperatura, umidade);
-        iaClassificacao = interpretarResultado(iaScore);
-        iaConfianca = calcularConfianca(iaScore);
-        
-        // Atualizar histórico
-        tempHistorico[historicoIndex] = temperatura;
-        pHHistorico[historicoIndex] = pH;
-        turbidezHistorico[historicoIndex] = turbidez;
-        
-        char buffer[20];
-        snprintf(buffer, sizeof(buffer), "%02d:%02d:%02d", 
-                 (millis() / 3600000) % 24, 
-                 (millis() / 60000) % 60, 
-                 (millis() / 1000) % 60);
+    }
+    
+    // Leitura real do sensor de pH e turbidez
+    pH = readPH();
+    turbidez = lerTurbidezFallback();
+    
+    // Análise IA
+    iaScore = analisarQualidadeAgua(temperatura, umidade);
+    iaClassificacao = interpretarResultado(iaScore);
+    iaConfianca = calcularConfianca(iaScore);
+    
+    // Atualizar histórico
+    tempHistorico[historicoIndex] = temperatura;
+    pHHistorico[historicoIndex] = pH;
+    turbidezHistorico[historicoIndex] = turbidez;
+    
+    char buffer[20];
+    snprintf(buffer, sizeof(buffer), "%02d:%02d:%02d", 
+             (millis() / 3600000) % 24, 
+             (millis() / 60000) % 60, 
+             (millis() / 1000) % 60);
         tempoHistorico[historicoIndex] = String(buffer);
         
         historicoIndex = (historicoIndex + 1) % historicoSize;
@@ -125,9 +174,6 @@ void lerSensorDHT() {
         Serial.print("   🧠 IA Score: "); Serial.print(iaScore, 4);
         Serial.print(" → "); Serial.print(iaClassificacao);
         Serial.print(" (Confiança: "); Serial.print(iaConfianca); Serial.println(")");
-    } else {
-        Serial.println("❌ Falha na leitura do DHT11!");
-    }
 }
 
 // ========== ENDPOINT API ==========

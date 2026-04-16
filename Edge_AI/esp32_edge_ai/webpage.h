@@ -1,3 +1,5 @@
+#include <Arduino.h>
+
 const char index_html[] PROGMEM = R"rawliteral(
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -215,16 +217,7 @@ const char index_html[] PROGMEM = R"rawliteral(
             border: 1px solid var(--success-border);
         }
 
-        /* AI Analysis Card */
-        .ai-analysis-card {
-            background-color: var(--bg-secondary);
-            border-radius: 0.5rem;
-            border: 1px solid var(--border-color);
-            border-left: 4px solid var(--accent-color);
-            padding: 1.5rem;
-            margin-bottom: 2rem;
-            box-shadow: var(--shadow-sm);
-        }
+
 
         /* Grade de Métricas */
         .metrics-grid {
@@ -742,20 +735,18 @@ const char index_html[] PROGMEM = R"rawliteral(
                 </button>
 
                 <button class="nav-item" id="configBtn">
-                    <svg class="icon-small" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <svg class="icon-small" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <circle cx="12" cy="12" r="3"></circle>
-                        <path
-                            d="M12 1v6m0 6v6M4.22 4.22l4.24 4.24m5.08 5.08l4.24 4.24M1 12h6m6 0h6M4.22 19.78l4.24-4.24m5.08-5.08l4.24-4.24">
-                        </path>
+                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
                     </svg>
                     <span>Config</span>
                 </button>
 
                 <button class="nav-item" id="aboutBtn">
-                    <svg class="icon-small" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <svg class="icon-small" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <circle cx="12" cy="12" r="10"></circle>
-                        <line x1="12" y1="16" x2="12" y2="12"></line>
-                        <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                        <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+                        <line x1="12" y1="17" x2="12.01" y2="17"></line>
                     </svg>
                     <span>Sobre</span>
                 </button>
@@ -787,29 +778,7 @@ const char index_html[] PROGMEM = R"rawliteral(
 
     <!-- Conteúdo Principal -->
     <main class="main-content">
-        <div class="container">
-            <!-- Última Análise -->
-            <div class="last-analysis">
-                <div>
-                    <h2 class="analysis-title">Última Análise</h2>
-                    <p class="analysis-time">Hoje às <span id="timeValue">--:--</span></p>
-                </div>
-            </div>
 
-            <!-- AI Analysis Section -->
-            <div class="ai-analysis-card">
-                <div class="metric-header" style="margin-bottom: 0.5rem;">
-                    <h3 class="metric-title" style="display: flex; align-items: center; gap: 0.5rem;">
-                        <svg class="metric-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                             <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
-                        </svg>
-                        Análise Inteligente Edge AI
-                    </h3>
-                </div>
-                <p id="aiAnalysisText" style="font-size: 1rem; color: var(--text-primary);">
-                    Iniciando análise dos sensores...
-                </p>
-            </div>
 
             <!-- Grade de Métricas -->
             <div class="metrics-grid">
@@ -866,11 +835,6 @@ const char index_html[] PROGMEM = R"rawliteral(
             currentPage: 'dashboard',
             theme: 'light',
             config: {
-                wifiEnabled: true,
-                wifiSSID: 'AquaAnalyzer_Device',
-                bluetoothEnabled: true,
-                bluetoothName: 'Analisador-001',
-                measurementFrequency: '30',
                 temperatureUnit: 'celsius'
             },
             currentTempCelsius: 0
@@ -884,7 +848,7 @@ const char index_html[] PROGMEM = R"rawliteral(
 
             // Fetch Real Sensor Data Loop
             fetchSensorData();
-            setInterval(fetchSensorData, 2000);
+            setInterval(fetchSensorData, 1000);
         });
 
         function initializeTheme() {
@@ -996,7 +960,6 @@ const char index_html[] PROGMEM = R"rawliteral(
                             </svg>
                             <div class="config-section-text">
                                 <h3>Status do Dispositivo</h3>
-                                <p>Status da conexão e informações do analisador</p>
                             </div>
                         </div>
                         <div class="status-container">
@@ -1015,42 +978,8 @@ const char index_html[] PROGMEM = R"rawliteral(
                                 <path d="M5 12.55a11 11 0 0 1 14.08 0M1.42 9a16 16 0 0 1 21.16 0M8.53 16.11a6 6 0 0 1 6.94 0"></path>
                             </svg>
                             <div class="config-section-text">
-                                <h3>Configurações de Conexão</h3>
-                                <p>Configure as opções de conectividade do dispositivo</p>
-                            </div>
-                        </div>
-                        <div class="config-item">
-                            <div class="config-item-left">
-                                <svg class="config-item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M5 12.55a11 11 0 0 1 14.08 0M1.42 9a16 16 0 0 1 21.16 0M8.53 16.11a6 6 0 0 1 6.94 0"></path>
-                                </svg>
-                                <div class="config-item-text"><h4>Wi-Fi</h4></div>
-                            </div>
-                        </div>
-                        <div class="config-field" id="wifiField">
-                            <label class="config-field-label">Nome da Rede (SSID)</label>
-                            <input type="text" class="config-input" id="wifiSSID" placeholder="Nome da rede Wi-Fi">
-                        </div>
-                    </div>
-                    <div class="config-section">
-                        <div class="config-section-header">
-                            <svg class="config-section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <circle cx="12" cy="12" r="1"></circle>
-                                <path d="M12 1v6m0 6v6M4.22 4.22l4.24 4.24m5.08 5.08l4.24 4.24M1 12h6m6 0h6M4.22 19.78l4.24-4.24m5.08-5.08l4.24-4.24"></path>
-                            </svg>
-                            <div class="config-section-text">
                                 <h3>Configurações de Medição</h3>
-                                <p>Configure a frequência e modo de operação das análises</p>
                             </div>
-                        </div>
-                        <div class="config-field">
-                            <label class="config-field-label">Frequência de Medição</label>
-                            <select class="config-select" id="measurementFrequency">
-                                <option value="15">A cada 15 minutos</option>
-                                <option value="30">A cada 30 minutos</option>
-                                <option value="60">A cada 1 hora</option>
-                                <option value="120">A cada 2 horas</option>
-                            </select>
                         </div>
                         <div class="config-field">
                             <label class="config-field-label">Unidade de Temperatura</label>
@@ -1063,22 +992,7 @@ const char index_html[] PROGMEM = R"rawliteral(
                 </div>
             `;
             document.body.appendChild(configPage);
-            const wifiToggle = document.getElementById('wifiToggle');
-            const bluetoothToggle = document.getElementById('bluetoothToggle');
-            if (wifiToggle) {
-                wifiToggle.addEventListener('click', () => {
-                    wifiToggle.classList.toggle('active');
-                    const wifiField = document.getElementById('wifiField');
-                    if (wifiField) wifiField.style.display = wifiToggle.classList.contains('active') ? 'block' : 'none';
-                });
-            }
-            if (bluetoothToggle) {
-                bluetoothToggle.addEventListener('click', () => {
-                    bluetoothToggle.classList.toggle('active');
-                    const bluetoothField = document.getElementById('bluetoothField');
-                    if (bluetoothField) bluetoothField.style.display = bluetoothToggle.classList.contains('active') ? 'block' : 'none';
-                });
-            }
+
         }
 
         function createAboutPage() {
@@ -1163,9 +1077,7 @@ const char index_html[] PROGMEM = R"rawliteral(
                             <br>
                             <p style="font-size: 0.875rem; color: var(--text-tertiary);">Versão 1.0.0</p>
                             
-                            <div style="text-align: center; margin-top: 2rem; color: var(--text-tertiary); font-size: 0.75rem; font-weight: 500;">
-                                Powered By Edge AI
-                            </div>
+
                         </div>
                     </div>
                 </div>
@@ -1174,24 +1086,12 @@ const char index_html[] PROGMEM = R"rawliteral(
         }
 
         function populateConfigForm() {
-            const wifiSSID = document.getElementById('wifiSSID');
-            const bluetoothName = document.getElementById('bluetoothName');
-            const measurementFrequency = document.getElementById('measurementFrequency');
             const temperatureUnit = document.getElementById('temperatureUnit');
-            if (wifiSSID) wifiSSID.value = appState.config.wifiSSID;
-            if (bluetoothName) bluetoothName.value = appState.config.bluetoothName;
-            if (measurementFrequency) measurementFrequency.value = appState.config.measurementFrequency;
             if (temperatureUnit) temperatureUnit.value = appState.config.temperatureUnit;
         }
 
         function saveConfig() {
-            const wifiSSID = document.getElementById('wifiSSID');
-            const bluetoothName = document.getElementById('bluetoothName');
-            const measurementFrequency = document.getElementById('measurementFrequency');
             const temperatureUnit = document.getElementById('temperatureUnit');
-            if (wifiSSID) appState.config.wifiSSID = wifiSSID.value;
-
-            if (measurementFrequency) appState.config.measurementFrequency = measurementFrequency.value;
             if (temperatureUnit) appState.config.temperatureUnit = temperatureUnit.value;
             localStorage.setItem('aquaanalyzer-config', JSON.stringify(appState.config));
             alert('Configurações salvas com sucesso!');
@@ -1240,22 +1140,21 @@ const char index_html[] PROGMEM = R"rawliteral(
         }
 
         function getPhStatus(val) {
-            if (val >= 6.5 && val <= 8.5) return 'Bom';
+            if (val >= 6.5 && val <= 8.5) return 'Bom'; // Recomendação OMS
             if ((val >= 6.0 && val < 6.5) || (val > 8.5 && val <= 9.0)) return 'Médio';
-            return 'Baixo';
+            return 'Baixo'; // Risco de corrosão ou baixa desinfeção
         }
 
         function getTurbidezStatus(val) {
-            if (val < 1.5) return 'Bom';
-            if (val < 5.0) return 'Médio';
-            return 'Baixo'; // High turbidity is bad quality
+            if (val <= 1.0) return 'Bom'; // Padrão OMS (Ideal < 1 NTU)
+            if (val <= 5.0) return 'Médio'; // Aceitável estético (Até 5 NTU)
+            return 'Baixo'; // Perigo biológico
         }
 
         function getTempStatus(val) {
-             if (val >= 20 && val <= 28) return 'Bom';
-             if (val >= 15 && val < 20) return 'Médio';
-             if (val > 28 && val <= 32) return 'Médio';
-             return 'Baixo'; // Extreme temps
+             if (val > 0 && val < 20) return 'Bom'; // OMS: Ideal para evitar microorganismos (< 20°C)
+             if (val >= 20 && val <= 25) return 'Médio'; // Aceitável mas em alerta para climas quentes
+             return 'Baixo'; // OMS: > 25°C propício à bactéria Legionella e algas
         }
 
         async function fetchSensorData() {
@@ -1276,18 +1175,7 @@ const char index_html[] PROGMEM = R"rawliteral(
                 updateStatusBadge('turbidezStatus', getTurbidezStatus(data.turbidez));
                 updateStatusBadge('tempStatus', getTempStatus(data.temperatura));
 
-                // AI Update
-                if(data.qualidadeIA) {
-                    const aiBox = document.getElementById('aiAnalysisText');
-                    if(aiBox) {
-                        aiBox.innerHTML = `
-                            <strong>Análise Completa:</strong> A qualidade da água foi classificada como 
-                            <strong>${data.qualidadeIA.classificacao}</strong> (Score de Risco: ${data.qualidadeIA.score}).
-                            <br>Nível de confiança da IA: <span>${data.qualidadeIA.confianca}</span>.
-                            <br>Status Geral: ${data.qualidadeIA.score < 0.5 ? 'Segura para uso.' : 'Requer atenção.'}
-                        `;
-                    }
-                }
+
             } catch (e) {
                 console.error("Fetch error", e);
             }

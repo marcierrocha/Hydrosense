@@ -21,6 +21,12 @@
             --success-bg: #d1fae5;
             --success-text: #065f46;
             --success-border: #a7f3d0;
+            --warning-bg: #fef3c7;
+            --warning-text: #92400e;
+            --warning-border: #fcd34d;
+            --danger-bg: #fee2e2;
+            --danger-text: #b91c1c;
+            --danger-border: #f87171;
             --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
             --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
             --nav-active: #10b981;
@@ -39,6 +45,12 @@
             --success-bg: #064e3b;
             --success-text: #34d399;
             --success-border: #059669;
+            --warning-bg: #78350f;
+            --warning-text: #fcd34d;
+            --warning-border: #d97706;
+            --danger-bg: #7f1d1d;
+            --danger-text: #fca5a5;
+            --danger-border: #dc2626;
             --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
             --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.4);
             --nav-active: #34d399;
@@ -202,6 +214,8 @@
             border: 1px solid var(--success-border);
         }
 
+
+
         /* Grade de Métricas */
         .metrics-grid {
             display: grid;
@@ -265,82 +279,30 @@
             display: inline-flex;
             align-items: center;
             padding: 0.375rem 0.75rem;
-            background-color: var(--success-bg);
-            color: var(--success-text);
             border-radius: 9999px;
             font-size: 0.75rem;
             font-weight: 500;
-            border: 1px solid var(--success-border);
+            border: 1px solid;
+            transition: all 0.3s ease;
         }
 
-        /* Grade de Gráficos */
-        .charts-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-            gap: 1.5rem;
+        /* Status Colors */
+        .status-good {
+            background-color: var(--success-bg);
+            color: var(--success-text);
+            border-color: var(--success-border);
         }
 
-        .chart-card {
-            background-color: var(--bg-secondary);
-            border-radius: 0.5rem;
-            border: 1px solid var(--border-color);
-            padding: 1.5rem;
-            box-shadow: var(--shadow-sm);
-            transition: background-color 0.3s ease, border-color 0.3s ease;
+        .status-medium {
+            background-color: var(--warning-bg);
+            color: var(--warning-text);
+            border-color: var(--warning-border);
         }
 
-        .chart-title {
-            font-size: 0.875rem;
-            font-weight: 600;
-            color: var(--text-primary);
-            margin-bottom: 0.25rem;
-        }
-
-        .chart-subtitle {
-            font-size: 0.75rem;
-            color: var(--text-tertiary);
-            margin-bottom: 1rem;
-        }
-
-        .chart-canvas {
-            width: 100%;
-            height: 300px;
-            max-width: 100%;
-        }
-
-        /* Responsivo */
-        @media (max-width: 768px) {
-            .header-container {
-                flex-direction: column;
-                gap: 1rem;
-            }
-
-            .nav {
-                width: 100%;
-                justify-content: space-around;
-            }
-
-            .nav-item span {
-                display: none;
-            }
-
-            .nav-item {
-                gap: 0;
-            }
-
-            .metrics-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .charts-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .last-analysis {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 1rem;
-            }
+        .status-bad {
+            background-color: var(--danger-bg);
+            color: var(--danger-text);
+            border-color: var(--danger-border);
         }
 
         /* Modal/Sobreposição de Página */
@@ -376,6 +338,7 @@
         .config-page.active {
             display: flex;
             flex-direction: column;
+            animation: slideIn 0.3s ease;
         }
 
         .config-header {
@@ -528,12 +491,6 @@
             background-color: var(--success-bg);
             color: var(--success-text);
             border-color: var(--success-border);
-        }
-
-        .status-item-badge.disconnected {
-            background-color: var(--bg-tertiary);
-            color: var(--text-tertiary);
-            border-color: var(--border-color);
         }
 
         .sync-btn {
@@ -704,9 +661,57 @@
                 opacity: 1;
             }
         }
+    </style>
+    <style>
+        /* Responsividade para Mobile (Tablets e Celulares) */
+        @media (max-width: 768px) {
+            .header-container {
+                padding: 0.75rem;
+            }
 
-        .config-page.active {
-            animation: slideIn 0.3s ease;
+            .logo-text {
+                font-size: 1.1rem;
+            }
+
+            .nav {
+                gap: 0.75rem;
+            }
+
+            .nav-item {
+                padding: 0.5rem;
+            }
+
+            .nav-item span {
+                display: none;
+            }
+
+            .main-content {
+                padding: 1.5rem 0.75rem;
+            }
+
+            .last-analysis {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.5rem;
+            }
+
+            .metric-value {
+                font-size: 1.5rem;
+            }
+
+            .config-header {
+                padding: 0.75rem;
+            }
+
+            .config-title {
+                font-size: 1.1rem;
+                margin-left: 0.5rem;
+            }
+
+            .back-btn span,
+            .save-btn span {
+                display: none;
+            }
         }
     </style>
 </head>
@@ -728,20 +733,22 @@
                 </button>
 
                 <button class="nav-item" id="configBtn">
-                    <svg class="icon-small" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <svg class="icon-small" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
                         <circle cx="12" cy="12" r="3"></circle>
                         <path
-                            d="M12 1v6m0 6v6M4.22 4.22l4.24 4.24m5.08 5.08l4.24 4.24M1 12h6m6 0h6M4.22 19.78l4.24-4.24m5.08-5.08l4.24-4.24">
+                            d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z">
                         </path>
                     </svg>
                     <span>Config</span>
                 </button>
 
                 <button class="nav-item" id="aboutBtn">
-                    <svg class="icon-small" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <svg class="icon-small" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
                         <circle cx="12" cy="12" r="10"></circle>
-                        <line x1="12" y1="16" x2="12" y2="12"></line>
-                        <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                        <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+                        <line x1="12" y1="17" x2="12.01" y2="17"></line>
                     </svg>
                     <span>Sobre</span>
                 </button>
@@ -773,216 +780,66 @@
 
     <!-- Conteúdo Principal -->
     <main class="main-content">
-        <div class="container">
-            <!-- Última Análise -->
-            <div class="last-analysis">
-                <div>
-                    <h2 class="analysis-title">Última Análise</h2>
-                    <p class="analysis-time">Hoje às 16:30</p>
+
+
+        <!-- Grade de Métricas -->
+        <div class="metrics-grid">
+            <!-- Card de pH -->
+            <div class="metric-card">
+                <div class="metric-header">
+                    <h3 class="metric-title">pH</h3>
+                    <svg class="metric-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+                    </svg>
                 </div>
-                <span class="quality-badge">Qualidade Normal</span>
-            </div>
-
-            <!-- Grade de Métricas -->
-            <div class="metrics-grid">
-                <!-- Card de pH -->
-                <div class="metric-card">
-                    <div class="metric-header">
-                        <h3 class="metric-title">pH</h3>
-                        <svg class="metric-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
-                        </svg>
-                    </div>
-                    <div class="metric-value">6.8</div>
-                    <p class="metric-description">Potencial hidrogeniônico</p>
-                    <div class="metric-footer">
-                        <span class="status-badge">Normal</span>
-                    </div>
-                </div>
-
-                <!-- Card de Turbidez -->
-                <div class="metric-card">
-                    <div class="metric-header">
-                        <h3 class="metric-title">Turbidez</h3>
-                        <svg class="metric-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"></path>
-                        </svg>
-                    </div>
-                    <div class="metric-value">1.2NTU</div>
-                    <p class="metric-description">Claridade da água</p>
-                    <div class="metric-footer">
-                        <span class="status-badge">Normal</span>
-                    </div>
-                </div>
-
-                <!-- Card de Temperatura -->
-                <div class="metric-card">
-                    <div class="metric-header">
-                        <h3 class="metric-title">Temperatura</h3>
-                        <svg class="metric-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M12 2v20M12 2a3 3 0 0 1 3 3v8a3 3 0 0 1-3 3 3 3 0 0 1-3-3V5a3 3 0 0 1 3-3z"></path>
-                        </svg>
-                    </div>
-                    <div class="metric-value" id="tempValue">23.5°C</div>
-                    <p class="metric-description">Temperatura da água</p>
-                    <div class="metric-footer">
-                        <span class="status-badge">Normal</span>
-                    </div>
-                </div>
-
-                <!-- Seção de Gráficos -->
-                <div class="charts-grid">
-                    <!-- Gráfico de Tendência de pH -->
-                    <div class="chart-card">
-                        <h3 class="chart-title">Tendência de pH</h3>
-                        <p class="chart-subtitle">Últimas 8 horas</p>
-                        <canvas id="phChart" class="chart-canvas"></canvas>
-                    </div>
-
-                    <!-- Gráfico de Tendência de Turbidez -->
-                    <div class="chart-card">
-                        <h3 class="chart-title">Tendência de Turbidez</h3>
-                        <p class="chart-subtitle">Últimas 8 horas</p>
-                        <canvas id="turbidezChart" class="chart-canvas"></canvas>
-                    </div>
+                <div class="metric-value" id="phValue">--</div>
+                <p class="metric-description">Potencial hidrogeniônico</p>
+                <div class="metric-footer">
+                    <div id="phStatus" class="status-badge">--</div>
                 </div>
             </div>
+
+            <!-- Card de Turbidez -->
+            <div class="metric-card">
+                <div class="metric-header">
+                    <h3 class="metric-title">Turbidez</h3>
+                    <svg class="metric-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"></path>
+                    </svg>
+                </div>
+                <div class="metric-value" id="turbidezValue">--NTU</div>
+                <p class="metric-description">Claridade da água</p>
+                <div class="metric-footer">
+                    <div id="turbidezStatus" class="status-badge">--</div>
+                </div>
+            </div>
+
+            <!-- Card de Temperatura -->
+            <div class="metric-card">
+                <div class="metric-header">
+                    <h3 class="metric-title">Temperatura</h3>
+                    <svg class="metric-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 2v20M12 2a3 3 0 0 1 3 3v8a3 3 0 0 1-3 3 3 3 0 0 1-3-3V5a3 3 0 0 1 3-3z"></path>
+                    </svg>
+                </div>
+                <div class="metric-value" id="tempValue">--°C</div>
+                <p class="metric-description">Temperatura da água</p>
+                <div class="metric-footer">
+                    <div id="tempStatus" class="status-badge">--</div>
+                </div>
+            </div>
+        </div>
         </div>
     </main>
 
     <script>
-        /* chart.js logic */
-        class SimpleLineChart {
-            constructor(canvasId, data, color, yMin, yMax) {
-                this.canvas = document.getElementById(canvasId);
-                this.ctx = this.canvas.getContext('2d');
-                this.data = data;
-                this.color = color;
-                this.yMin = yMin;
-                this.yMax = yMax;
-
-                this.setupCanvas();
-                this.draw();
-            }
-
-            setupCanvas() {
-                const rect = this.canvas.getBoundingClientRect();
-                this.canvas.width = rect.width;
-                this.canvas.height = rect.height;
-                const dpr = window.devicePixelRatio || 1;
-                this.canvas.width *= dpr;
-                this.canvas.height *= dpr;
-                this.ctx.scale(dpr, dpr);
-                this.width = rect.width;
-                this.height = rect.height;
-            }
-
-            draw() {
-                this.ctx.fillStyle = '#ffffff';
-                this.ctx.fillRect(0, 0, this.width, this.height);
-                this.drawGrid();
-                this.drawAxes();
-                this.drawLine();
-            }
-
-            drawGrid() {
-                this.ctx.strokeStyle = '#e2e8f0';
-                this.ctx.lineWidth = 1;
-                this.ctx.setLineDash([3, 3]);
-                const padding = { top: 30, right: 30, bottom: 50, left: 50 };
-                const graphWidth = this.width - padding.left - padding.right;
-                const graphHeight = this.height - padding.top - padding.bottom;
-                for (let i = 0; i <= 4; i++) {
-                    const x = padding.left + (graphWidth / 4) * i;
-                    this.ctx.beginPath();
-                    this.ctx.moveTo(x, padding.top);
-                    this.ctx.lineTo(x, this.height - padding.bottom);
-                    this.ctx.stroke();
-                }
-                for (let i = 0; i <= 4; i++) {
-                    const y = padding.top + (graphHeight / 4) * i;
-                    this.ctx.beginPath();
-                    this.ctx.moveTo(padding.left, y);
-                    this.ctx.lineTo(this.width - padding.right, y);
-                    this.ctx.stroke();
-                }
-                this.ctx.setLineDash([]);
-            }
-
-            drawAxes() {
-                const padding = { top: 30, right: 30, bottom: 50, left: 50 };
-                this.ctx.strokeStyle = '#cbd5e1';
-                this.ctx.lineWidth = 1;
-                this.ctx.beginPath();
-                this.ctx.moveTo(padding.left, this.height - padding.bottom);
-                this.ctx.lineTo(this.width - padding.right, this.height - padding.bottom);
-                this.ctx.stroke();
-                this.ctx.beginPath();
-                this.ctx.moveTo(padding.left, padding.top);
-                this.ctx.lineTo(padding.left, this.height - padding.bottom);
-                this.ctx.stroke();
-                this.ctx.fillStyle = '#64748b';
-                this.ctx.font = '12px sans-serif';
-                this.ctx.textAlign = 'right';
-                this.ctx.textBaseline = 'middle';
-                const graphHeight = this.height - padding.top - padding.bottom;
-                for (let i = 0; i <= 4; i++) {
-                    const value = this.yMax - (this.yMax - this.yMin) * (i / 4);
-                    const y = padding.top + (graphHeight / 4) * i;
-                    this.ctx.fillText(value.toFixed(2), padding.left - 10, y);
-                }
-                this.ctx.textAlign = 'center';
-                this.ctx.textBaseline = 'top';
-                const graphWidth = this.width - padding.left - padding.right;
-                this.data.forEach((point, index) => {
-                    const x = padding.left + (graphWidth / (this.data.length - 1)) * index;
-                    this.ctx.fillText(point.time, x, this.height - padding.bottom + 10);
-                });
-            }
-
-            drawLine() {
-                const padding = { top: 30, right: 30, bottom: 50, left: 50 };
-                const graphWidth = this.width - padding.left - padding.right;
-                const graphHeight = this.height - padding.top - padding.bottom;
-                this.ctx.strokeStyle = this.color;
-                this.ctx.lineWidth = 2;
-                this.ctx.beginPath();
-                this.data.forEach((point, index) => {
-                    const x = padding.left + (graphWidth / (this.data.length - 1)) * index;
-                    const y = padding.top + graphHeight - ((point.value - this.yMin) / (this.yMax - this.yMin)) * graphHeight;
-                    if (index === 0) this.ctx.moveTo(x, y);
-                    else this.ctx.lineTo(x, y);
-                });
-                this.ctx.stroke();
-                this.ctx.fillStyle = this.color;
-                this.data.forEach((point, index) => {
-                    const x = padding.left + (graphWidth / (this.data.length - 1)) * index;
-                    const y = padding.top + graphHeight - ((point.value - this.yMin) / (this.yMax - this.yMin)) * graphHeight;
-                    this.ctx.beginPath();
-                    this.ctx.arc(x, y, 4, 0, 2 * Math.PI);
-                    this.ctx.fill();
-                    this.ctx.fillStyle = '#ffffff';
-                    this.ctx.beginPath();
-                    this.ctx.arc(x, y, 2, 0, 2 * Math.PI);
-                    this.ctx.fill();
-                    this.ctx.fillStyle = this.color;
-                });
-            }
-        }
-
-        /* app.js logic */
         const appState = {
             currentPage: 'dashboard',
             theme: 'light',
             config: {
-                wifiEnabled: true,
-                wifiSSID: 'AquaAnalyzer_Device',
-                bluetoothEnabled: true,
-                bluetoothName: 'Analisador-001',
-                measurementFrequency: '30',
                 temperatureUnit: 'celsius'
             },
-            currentTempCelsius: 23.5
+            currentTempCelsius: 0
         };
 
         document.addEventListener('DOMContentLoaded', () => {
@@ -991,27 +848,9 @@
             loadConfigFromStorage();
             updateDashboard();
 
-            // Initialize Charts
-            const phData = [
-                { time: '08:00', value: 6.5 },
-                { time: '10:00', value: 6.7 },
-                { time: '12:00', value: 6.8 },
-                { time: '14:00', value: 6.9 },
-                { time: '16:00', value: 6.8 },
-            ];
-            const turbidezData = [
-                { time: '08:00', value: 1.5 },
-                { time: '10:00', value: 1.3 },
-                { time: '12:00', value: 1.2 },
-                { time: '14:00', value: 1.1 },
-                { time: '16:00', value: 1.2 },
-            ];
-            new SimpleLineChart('phChart', phData, '#3b82f6', 6, 8);
-            new SimpleLineChart('turbidezChart', turbidezData, '#10b981', 0, 3);
-            window.addEventListener('resize', () => {
-                new SimpleLineChart('phChart', phData, '#3b82f6', 6, 8);
-                new SimpleLineChart('turbidezChart', turbidezData, '#10b981', 0, 3);
-            });
+            // Fetch Real Sensor Data Loop
+            fetchSensorData();
+            setInterval(fetchSensorData, 1000);
         });
 
         function initializeTheme() {
@@ -1123,7 +962,6 @@
                             </svg>
                             <div class="config-section-text">
                                 <h3>Status do Dispositivo</h3>
-                                <p>Status da conexão e informações do analisador</p>
                             </div>
                         </div>
                         <div class="status-container">
@@ -1134,9 +972,7 @@
                                 <span class="status-item-name">Wi-Fi</span>
                                 <span class="status-item-badge connected">Conectado</span>
                             </div>
-                            
                         </div>
-                       
                     </div>
                     <div class="config-section">
                         <div class="config-section-header">
@@ -1144,45 +980,8 @@
                                 <path d="M5 12.55a11 11 0 0 1 14.08 0M1.42 9a16 16 0 0 1 21.16 0M8.53 16.11a6 6 0 0 1 6.94 0"></path>
                             </svg>
                             <div class="config-section-text">
-                                <h3>Configurações de Conexão</h3>
-                                <p>Configure as opções de conectividade do dispositivo</p>
-                            </div>
-                        </div>
-                        <div class="config-item">
-                            <div class="config-item-left">
-                                <svg class="config-item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M5 12.55a11 11 0 0 1 14.08 0M1.42 9a16 16 0 0 1 21.16 0M8.53 16.11a6 6 0 0 1 6.94 0"></path>
-                                </svg>
-                                <div class="config-item-text"><h4>Wi-Fi</h4></div>
-                            </div>
-                            
-                        </div>
-                        <div class="config-field" id="wifiField">
-                            <label class="config-field-label">Nome da Rede (SSID)</label>
-                            <input type="text" class="config-input" id="wifiSSID" placeholder="Nome da rede Wi-Fi">
-                        </div>
-                        
-                               
-                    </div>
-                    <div class="config-section">
-                        <div class="config-section-header">
-                            <svg class="config-section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <circle cx="12" cy="12" r="1"></circle>
-                                <path d="M12 1v6m0 6v6M4.22 4.22l4.24 4.24m5.08 5.08l4.24 4.24M1 12h6m6 0h6M4.22 19.78l4.24-4.24m5.08-5.08l4.24-4.24"></path>
-                            </svg>
-                            <div class="config-section-text">
                                 <h3>Configurações de Medição</h3>
-                                <p>Configure a frequência e modo de operação das análises</p>
                             </div>
-                        </div>
-                        <div class="config-field">
-                            <label class="config-field-label">Frequência de Medição</label>
-                            <select class="config-select" id="measurementFrequency">
-                                <option value="15">A cada 15 minutos</option>
-                                <option value="30">A cada 30 minutos</option>
-                                <option value="60">A cada 1 hora</option>
-                                <option value="120">A cada 2 horas</option>
-                            </select>
                         </div>
                         <div class="config-field">
                             <label class="config-field-label">Unidade de Temperatura</label>
@@ -1195,22 +994,7 @@
                 </div>
             `;
             document.body.appendChild(configPage);
-            const wifiToggle = document.getElementById('wifiToggle');
-            const bluetoothToggle = document.getElementById('bluetoothToggle');
-            if (wifiToggle) {
-                wifiToggle.addEventListener('click', () => {
-                    wifiToggle.classList.toggle('active');
-                    const wifiField = document.getElementById('wifiField');
-                    if (wifiField) wifiField.style.display = wifiToggle.classList.contains('active') ? 'block' : 'none';
-                });
-            }
-            if (bluetoothToggle) {
-                bluetoothToggle.addEventListener('click', () => {
-                    bluetoothToggle.classList.toggle('active');
-                    const bluetoothField = document.getElementById('bluetoothField');
-                    if (bluetoothField) bluetoothField.style.display = bluetoothToggle.classList.contains('active') ? 'block' : 'none';
-                });
-            }
+
         }
 
         function createAboutPage() {
@@ -1294,6 +1078,8 @@
                             </ul>
                             <br>
                             <p style="font-size: 0.875rem; color: var(--text-tertiary);">Versão 1.0.0</p>
+                            
+
                         </div>
                     </div>
                 </div>
@@ -1302,24 +1088,12 @@
         }
 
         function populateConfigForm() {
-            const wifiSSID = document.getElementById('wifiSSID');
-            const bluetoothName = document.getElementById('bluetoothName');
-            const measurementFrequency = document.getElementById('measurementFrequency');
             const temperatureUnit = document.getElementById('temperatureUnit');
-            if (wifiSSID) wifiSSID.value = appState.config.wifiSSID;
-            if (bluetoothName) bluetoothName.value = appState.config.bluetoothName;
-            if (measurementFrequency) measurementFrequency.value = appState.config.measurementFrequency;
             if (temperatureUnit) temperatureUnit.value = appState.config.temperatureUnit;
         }
 
         function saveConfig() {
-            const wifiSSID = document.getElementById('wifiSSID');
-            const bluetoothName = document.getElementById('bluetoothName');
-            const measurementFrequency = document.getElementById('measurementFrequency');
             const temperatureUnit = document.getElementById('temperatureUnit');
-            if (wifiSSID) appState.config.wifiSSID = wifiSSID.value;
-
-            if (measurementFrequency) appState.config.measurementFrequency = measurementFrequency.value;
             if (temperatureUnit) appState.config.temperatureUnit = temperatureUnit.value;
             localStorage.setItem('aquaanalyzer-config', JSON.stringify(appState.config));
             alert('Configurações salvas com sucesso!');
@@ -1347,6 +1121,65 @@
             if (saved) {
                 try { appState.config = JSON.parse(saved); }
                 catch (e) { console.error('Error loading config:', e); }
+            }
+        }
+
+        // Status Status Logic
+        function updateStatusBadge(id, status) {
+            const el = document.getElementById(id);
+            if (!el) return;
+
+            el.className = 'status-badge'; // Reset
+
+            if (status === 'Bom') {
+                el.classList.add('status-good');
+            } else if (status === 'Médio') {
+                el.classList.add('status-medium');
+            } else {
+                el.classList.add('status-bad');
+            }
+            el.innerText = status;
+        }
+
+        function getPhStatus(val) {
+            if (val >= 6.5 && val <= 8.5) return 'Bom'; // Recomendação OMS
+            if ((val >= 6.0 && val < 6.5) || (val > 8.5 && val <= 9.0)) return 'Médio';
+            return 'Baixo'; // Risco de corrosão ou baixa desinfeção
+        }
+
+        function getTurbidezStatus(val) {
+            if (val <= 1.0) return 'Bom'; // Padrão OMS (Ideal < 1 NTU)
+            if (val <= 5.0) return 'Médio'; // Aceitável estético (Até 5 NTU)
+            return 'Baixo'; // Perigo biológico
+        }
+
+        function getTempStatus(val) {
+            if (val > 0 && val < 20) return 'Bom'; // OMS: Ideal para evitar microorganismos (< 20°C)
+            if (val >= 20 && val <= 25) return 'Médio'; // Aceitável mas em alerta para climas quentes
+            return 'Baixo'; // OMS: > 25°C propício à bactéria Legionella e algas
+        }
+
+        async function fetchSensorData() {
+            try {
+                const response = await fetch('/api/sensor-data');
+                const data = await response.json();
+
+                appState.currentTempCelsius = data.temperatura;
+                updateDashboard(); // Updates Temp with correct unit
+
+                // Update Other Values
+                if (document.getElementById('phValue')) document.getElementById('phValue').innerText = data.pH.toFixed(1);
+                if (document.getElementById('turbidezValue')) document.getElementById('turbidezValue').innerText = data.turbidez.toFixed(1) + 'NTU';
+                if (document.getElementById('timeValue')) document.getElementById('timeValue').innerText = data.ultimaAtualizacao;
+
+                // Update Status Badges
+                updateStatusBadge('phStatus', getPhStatus(data.pH));
+                updateStatusBadge('turbidezStatus', getTurbidezStatus(data.turbidez));
+                updateStatusBadge('tempStatus', getTempStatus(data.temperatura));
+
+
+            } catch (e) {
+                console.error("Fetch error", e);
             }
         }
     </script>
